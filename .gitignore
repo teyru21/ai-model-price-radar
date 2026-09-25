@@ -1,0 +1,15 @@
+# 生成产物与临时文件
+preview/
+.edge-profile/
+.shots/
+.verify/
+.npm-cache/
+.tmp-*
+*.err
+
+# 部署辅助（SSH 私钥绝不入库）
+.deploy/
+
+# 系统文件
+Thumbs.db
+Desktop.ini
