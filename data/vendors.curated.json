@@ -1,0 +1,216 @@
+{
+  "_comment": "厂商元数据（人工维护）。key = OpenRouter 模型 id 的前缀。links 为厂商官方入口；未列出的厂商会自动回退到 models.dev 的官方 doc 链接，再回退到 OpenRouter 厂商页。",
+  "version": "1.0.0",
+  "updated_at": "2026-09-25",
+  "vendors": {
+    "openai": {
+      "name": "OpenAI", "name_zh": "OpenAI", "region": "us", "brand": "#10a37f",
+      "links": {
+        "docs": "https://platform.openai.com/docs/models",
+        "pricing": "https://platform.openai.com/docs/pricing",
+        "console": "https://platform.openai.com/api-keys"
+      }
+    },
+    "anthropic": {
+      "name": "Anthropic", "name_zh": "Anthropic", "region": "us", "brand": "#d97757",
+      "links": {
+        "docs": "https://docs.anthropic.com/en/docs/about-claude/models",
+        "pricing": "https://www.anthropic.com/pricing#api",
+        "console": "https://console.anthropic.com/settings/keys"
+      }
+    },
+    "google": {
+      "name": "Google", "name_zh": "谷歌", "region": "us", "brand": "#4285f4",
+      "links": {
+        "docs": "https://ai.google.dev/gemini-api/docs/models",
+        "pricing": "https://ai.google.dev/gemini-api/docs/pricing",
+        "console": "https://aistudio.google.com/apikey"
+      }
+    },
+    "deepseek": {
+      "name": "DeepSeek", "name_zh": "深度求索", "region": "cn", "brand": "#4d6bfe",
+      "links": {
+        "docs": "https://api-docs.deepseek.com/zh-cn/",
+        "pricing": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+        "console": "https://platform.deepseek.com/api_keys"
+      }
+    },
+    "qwen": {
+      "name": "Qwen (Alibaba Cloud)", "name_zh": "通义千问（阿里云百炼）", "region": "cn", "brand": "#615ced",
+      "links": {
+        "docs": "https://help.aliyun.com/zh/model-studio/developer-reference/",
+        "pricing": "https://help.aliyun.com/zh/model-studio/models",
+        "console": "https://bailian.console.aliyun.com/"
+      }
+    },
+    "z-ai": {
+      "name": "Z.ai (Zhipu)", "name_zh": "智谱 AI", "region": "cn", "brand": "#3859ff",
+      "links": {
+        "docs": "https://docs.z.ai/guides/llm/glm-4.6",
+        "pricing": "https://docs.z.ai/guides/overview/pricing",
+        "console": "https://z.ai/manage-apikey/apikey-list"
+      }
+    },
+    "moonshotai": {
+      "name": "Moonshot AI", "name_zh": "月之暗面 Kimi", "region": "cn", "brand": "#000000",
+      "links": {
+        "docs": "https://platform.moonshot.cn/docs/",
+        "pricing": "https://platform.moonshot.cn/docs/pricing/chat",
+        "console": "https://platform.moonshot.cn/console/api-keys"
+      }
+    },
+    "x-ai": {
+      "name": "xAI", "name_zh": "xAI", "region": "us", "brand": "#000000",
+      "links": {
+        "docs": "https://docs.x.ai/docs/overview",
+        "pricing": "https://docs.x.ai/docs/models",
+        "console": "https://console.x.ai/"
+      }
+    },
+    "mistralai": {
+      "name": "Mistral AI", "name_zh": "Mistral AI", "region": "eu", "brand": "#fa520f",
+      "links": {
+        "docs": "https://docs.mistral.ai/getting-started/models/models_overview/",
+        "pricing": "https://mistral.ai/pricing#api-pricing",
+        "console": "https://console.mistral.ai/api-keys"
+      }
+    },
+    "minimax": {
+      "name": "MiniMax", "name_zh": "MiniMax", "region": "cn", "brand": "#e2162a",
+      "links": {
+        "docs": "https://platform.minimaxi.com/document",
+        "pricing": "https://platform.minimaxi.com/document/price",
+        "console": "https://platform.minimaxi.com/user-center/basic-information/interface-key"
+      }
+    },
+    "bytedance-seed": {
+      "name": "ByteDance Seed", "name_zh": "字节跳动 Seed", "region": "cn", "brand": "#325ab4",
+      "links": {
+        "docs": "https://www.volcengine.com/docs/82379",
+        "pricing": "https://www.volcengine.com/docs/82379/1099320",
+        "console": "https://console.volcengine.com/ark"
+      }
+    },
+    "bytedance": {
+      "name": "ByteDance", "name_zh": "字节跳动", "region": "cn", "brand": "#325ab4",
+      "links": {
+        "docs": "https://www.volcengine.com/docs/82379",
+        "pricing": "https://www.volcengine.com/docs/82379/1099320",
+        "console": "https://console.volcengine.com/ark"
+      }
+    },
+    "tencent": {
+      "name": "Tencent Hunyuan", "name_zh": "腾讯混元", "region": "cn", "brand": "#0052d9",
+      "links": {
+        "docs": "https://cloud.tencent.com/document/product/1729",
+        "pricing": "https://cloud.tencent.com/document/product/1729/97731",
+        "console": "https://console.cloud.tencent.com/hunyuan/api-key"
+      }
+    },
+    "baidu": {
+      "name": "Baidu ERNIE", "name_zh": "百度文心", "region": "cn", "brand": "#2932e1",
+      "links": {
+        "docs": "https://cloud.baidu.com/doc/WENXINWORKSHOP/index.html",
+        "pricing": "https://cloud.baidu.com/doc/WENXINWORKSHOP/s/hlrk4akp7",
+        "console": "https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application"
+      }
+    },
+    "stepfun": {
+      "name": "StepFun", "name_zh": "阶跃星辰", "region": "cn", "brand": "#16a34a",
+      "links": {
+        "docs": "https://platform.stepfun.com/docs/overview/details",
+        "pricing": "https://platform.stepfun.com/docs/pricing/details",
+        "console": "https://platform.stepfun.com/interface-key"
+      }
+    },
+    "inclusionai": {
+      "name": "InclusionAI", "name_zh": "无问芯穹 InclusionAI", "region": "cn", "brand": "#0f766e",
+      "links": null
+    },
+    "xiaomi": {
+      "name": "Xiaomi MiMo", "name_zh": "小米 MiMo", "region": "cn", "brand": "#ff6900",
+      "links": null
+    },
+    "meta": {
+      "name": "Meta", "name_zh": "Meta", "region": "us", "brand": "#0866ff",
+      "links": {
+        "docs": "https://www.llama.com/docs/overview/",
+        "pricing": "https://www.llama.com/docs/overview/",
+        "console": "https://llama.developer.meta.com/"
+      }
+    },
+    "meta-llama": {
+      "name": "Meta (Llama)", "name_zh": "Meta（Llama）", "region": "us", "brand": "#0866ff",
+      "links": {
+        "docs": "https://www.llama.com/docs/overview/",
+        "pricing": "https://www.llama.com/docs/overview/",
+        "console": "https://llama.developer.meta.com/"
+      }
+    },
+    "amazon": {
+      "name": "Amazon Bedrock", "name_zh": "亚马逊 Bedrock", "region": "us", "brand": "#ff9900",
+      "links": {
+        "docs": "https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html",
+        "pricing": "https://aws.amazon.com/bedrock/pricing/",
+        "console": "https://console.aws.amazon.com/bedrock"
+      }
+    },
+    "cohere": {
+      "name": "Cohere", "name_zh": "Cohere", "region": "us", "brand": "#39594d",
+      "links": {
+        "docs": "https://docs.cohere.com/docs/models",
+        "pricing": "https://cohere.com/pricing",
+        "console": "https://dashboard.cohere.com/api-keys"
+      }
+    },
+    "nvidia": {
+      "name": "NVIDIA NIM", "name_zh": "英伟达 NIM", "region": "us", "brand": "#76b900",
+      "links": {
+        "docs": "https://docs.nvidia.com/nim/",
+        "pricing": "https://build.nvidia.com/explore/discover",
+        "console": "https://build.nvidia.com/settings/api-keys"
+      }
+    },
+    "microsoft": {
+      "name": "Microsoft Azure AI", "name_zh": "微软 Azure AI", "region": "us", "brand": "#0078d4",
+      "links": {
+        "docs": "https://learn.microsoft.com/azure/ai-foundry/openai/concepts/models",
+        "pricing": "https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/",
+        "console": "https://ai.azure.com/"
+      }
+    },
+    "perplexity": {
+      "name": "Perplexity", "name_zh": "Perplexity", "region": "us", "brand": "#20808d",
+      "links": {
+        "docs": "https://docs.perplexity.ai/getting-started/models",
+        "pricing": "https://docs.perplexity.ai/guides/pricing",
+        "console": "https://www.perplexity.ai/settings/api"
+      }
+    },
+    "ai21": {
+      "name": "AI21 Labs", "name_zh": "AI21 Labs", "region": "il", "brand": "#e11d48",
+      "links": {
+        "docs": "https://docs.ai21.com/",
+        "pricing": "https://www.ai21.com/pricing",
+        "console": "https://studio.ai21.com/account/api-key"
+      }
+    },
+    "nousresearch": { "name": "Nous Research", "name_zh": "Nous Research", "region": "us", "brand": "#6d28d9", "links": null },
+    "liquid": { "name": "Liquid AI", "name_zh": "Liquid AI", "region": "us", "brand": "#0891b2", "links": null },
+    "upstage": { "name": "Upstage", "name_zh": "Upstage", "region": "kr", "brand": "#7c3aed", "links": null },
+    "rekaai": { "name": "Reka AI", "name_zh": "Reka AI", "region": "us", "brand": "#0ea5e9", "links": null },
+    "sakana": { "name": "Sakana AI", "name_zh": "Sakana AI", "region": "jp", "brand": "#f43f5e", "links": null },
+    "ibm-granite": { "name": "IBM Granite", "name_zh": "IBM Granite", "region": "us", "brand": "#0f62fe", "links": null },
+    "writer": { "name": "Writer", "name_zh": "Writer", "region": "us", "brand": "#111827", "links": null },
+    "inception": { "name": "Inception", "name_zh": "Inception", "region": "us", "brand": "#9333ea", "links": null },
+    "morph": { "name": "Morph", "name_zh": "Morph", "region": "us", "brand": "#334155", "links": null },
+    "relace": { "name": "Relace", "name_zh": "Relace", "region": "us", "brand": "#475569", "links": null },
+    "arcee-ai": { "name": "Arcee AI", "name_zh": "Arcee AI", "region": "us", "brand": "#ea580c", "links": null },
+    "kwaipilot": { "name": "KwaiPilot", "name_zh": "快手 KwaiPilot", "region": "cn", "brand": "#ff5000", "links": null },
+    "meituan": { "name": "Meituan", "name_zh": "美团", "region": "cn", "brand": "#ffd100", "links": null },
+    "poolside": { "name": "Poolside", "name_zh": "Poolside", "region": "us", "brand": "#0f172a", "links": null },
+    "thinkingmachines": { "name": "Thinking Machines", "name_zh": "Thinking Machines", "region": "us", "brand": "#111827", "links": null },
+    "openrouter": { "name": "OpenRouter", "name_zh": "OpenRouter（聚合平台）", "region": "us", "brand": "#6467f2", "links": {
+      "docs": "https://openrouter.ai/docs", "pricing": "https://openrouter.ai/models", "console": "https://openrouter.ai/settings/keys" } }
+  }
+}

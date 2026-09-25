@@ -1,0 +1,15 @@
+{
+  "_comment": "站点配置。改动后重新执行 node scripts/fetch-data.mjs 生效。",
+  "usd_cny": 7.1,
+  "mainstream": {
+    "_comment": "「主流模型」判定规则，用于默认视图与榜单。",
+    "vendors": [
+      "openai", "anthropic", "google", "deepseek", "qwen", "z-ai", "moonshotai",
+      "x-ai", "meta", "meta-llama", "mistralai", "minimax", "baidu",
+      "bytedance", "bytedance-seed", "tencent", "stepfun", "xiaomi", "inclusionai",
+      "amazon", "cohere", "nvidia", "microsoft", "perplexity", "ai21"
+    ],
+    "max_age_months": 24,
+    "require_score": false
+  }
+}

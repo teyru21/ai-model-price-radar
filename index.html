@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 模型价格雷达 · 主流大模型 token 价格 / 能力 / 性价比对比</title>
+<meta name="description" content="实时汇总主流 AI 大模型的 token 价格（输入/输出/缓存）、Artificial Analysis 能力评分与性价比排名，并提供各厂商官方 API 平台入口。">
+<link rel="stylesheet" href="./assets/css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+<!-- 静态 / 动态切换点：留空 = 使用本地 data/models.json；填 https://你的域名/api = 使用后端接口 -->
+<script>window.__AI_API_BASE__ = '';</script>
+<script src="./assets/js/guard.js"></script>
+</head>
+<body>
+<main class="wrap page" id="app">
+  <p class="muted" style="padding:60px 0;text-align:center">正在加载模型数据…</p>
+</main>
+<script type="module" src="./assets/js/pages/home.js"></script>
+</body>
+</html>

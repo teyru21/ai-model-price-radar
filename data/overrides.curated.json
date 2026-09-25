@@ -1,0 +1,6 @@
+{
+  "_comment": "模型级人工覆盖（可选）。当前为空 —— 所有数据均由公开接口自动生成，不做任何人工编造。可用字段示例：{ \"tier\": \"flagship\", \"hidden\": true, \"name_zh\": \"中文名\", \"price_cny\": {\"input\": 4, \"output\": 12}, \"scores\": {\"intelligence\": 55} }",
+  "version": "1.0.0",
+  "updated_at": "2026-09-25",
+  "models": {}
+}

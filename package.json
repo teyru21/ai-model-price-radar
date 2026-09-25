@@ -1,0 +1,17 @@
+{
+  "name": "ai-model-price-radar",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI 模型价格 / 能力 / 性价比 展示站 —— 零依赖、无构建步骤的纯静态站点，可平滑升级为动态服务",
+  "scripts": {
+    "data": "node scripts/fetch-data.mjs",
+    "pages": "node scripts/generate-pages.mjs",
+    "build": "node scripts/fetch-data.mjs && node scripts/generate-pages.mjs",
+    "serve": "node scripts/serve.mjs",
+    "dev": "node scripts/serve.mjs 5173"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {},
+  "devDependencies": {}
+}

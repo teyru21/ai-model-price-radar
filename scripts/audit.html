@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>layout audit</title></head>
+<body>
+<pre id="out">auditing…</pre>
+<script>
+const url = new URLSearchParams(location.search).get('p') || './index.html';
+const width = Number(new URLSearchParams(location.search).get('w') || 1440);
+const frame = document.createElement('iframe');
+frame.src = url;
+frame.style.cssText = 'position:absolute;left:-20000px;width:' + width + 'px;height:2600px;border:0';
+document.body.appendChild(frame);
+
+function audit(doc, win) {
+  const out = [];
+  const vw = win.document.documentElement.clientWidth;
+  out.push('== ' + url + ' | vw=' + vw + ' | scrollW=' + doc.documentElement.scrollWidth);
+
+  // 页面级水平溢出
+  if (doc.documentElement.scrollWidth > vw + 2) out.push('!! 页面水平溢出');
+  doc.querySelectorAll('body > *').forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.right > vw + 3 && !el.closest('svg')) {
+      out.push('overflow-el: ' + el.tagName.toLowerCase() + '.' + String(el.className).split(' ')[0] + ' right=' + Math.round(r.right));
+    }
+  });
+
+  // 新设计生效检查（桌面）
+  const cs = win.getComputedStyle(doc.body);
+  out.push('body-bg=' + cs.backgroundColor + ' | font=' + cs.fontSize + '/' + cs.lineHeight);
+  const card = doc.querySelector('.card');
+  if (card) {
+    const cc = win.getComputedStyle(card);
+    out.push('card radius=' + cc.borderRadius + ' border=' + cc.borderColor.slice(0, 20));
+  }
+  const hero = doc.querySelector('.hero h1 .grad');
+  if (hero) out.push('hero gradient 标题已生效');
+  const stat = doc.querySelector('.stat-v');
+  if (stat) out.push('stat-v font=' + win.getComputedStyle(stat).fontFamily.split(',')[0]);
+
+  // 移动端检查
+  const ham = doc.querySelector('.hamburger');
+  if (ham) {
+    out.push('hamburger display=' + win.getComputedStyle(ham).display + (vw <= 820 ? '（应为 grid）' : '（应为 none）'));
+  }
+  const nav = doc.querySelector('.nav');
+  if (nav) {
+    out.push('nav display=' + win.getComputedStyle(nav).display + (vw <= 820 ? '（应为 none，点汉堡后 open）' : ''));
+  }
+  const ch = doc.querySelector('.chart-host');
+  if (ch) {
+    const r = ch.getBoundingClientRect();
+    out.push('chart 容器 w=' + Math.round(r.width) + ' scrollW=' + ch.scrollWidth + (vw <= 820 ? (ch.scrollWidth > r.width ? '（可横向滚动 ✓）' : '（不可滚动 ✗）') : ''));
+  }
+
+  // 顶栏高度与表头吸附偏移
+  const bar = doc.querySelector('.topbar-inner');
+  if (bar) out.push('topbar h=' + Math.round(bar.getBoundingClientRect().height));
+
+  out.push('jsError=' + !!doc.querySelector('[data-js-error]'));
+  return out.join('\n');
+}
+
+frame.addEventListener('load', () => {
+  setTimeout(() => {
+    try { document.getElementById('out').textContent = audit(frame.contentDocument, frame.contentWindow); }
+    catch (e) { document.getElementById('out').textContent = 'AUDIT ERROR: ' + e.message; }
+  }, 3500);
+});
+</script>
+</body>
+</html>
