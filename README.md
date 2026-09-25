@@ -121,6 +121,8 @@ npm run build    # 数据 + 页面
 
 ## 部署（静态）
 
+**线上站点：https://teyru21.github.io/ai-model-price-radar/** （GitHub Pages）
+
 把整个目录（或只保留 `*.html`、`assets/`、`data/`、`model/`、`sitemap.xml`）上传到任意静态空间即可。Nginx 示例：
 
 ```nginx
@@ -136,6 +138,17 @@ server {
 ```
 
 > 必须用静态服务器访问。本站使用 ES Module，浏览器不允许直接用 `file://` 双击打开（这是浏览器的模块加载限制，与本项目无关）。`npm run serve` 就是这个用途。
+
+### 更新线上（GitHub Pages）
+
+本项目所在网络环境到 `github.com` 的 git HTTPS/SSH 通道会被重置，因此提供了一条**全走 api.github.com 的部署通道**：
+
+```bash
+npm run build                       # 1. 重新抓数据 + 生成详情页（可选，数据没变可跳过）
+node scripts/push-via-api.mjs teyru21 ai-model-price-radar <PAT>   # 2. 全量同步到 GitHub（Git Data API）
+```
+
+`PAT` 是 GitHub Personal Access Token，仅需 `Contents: Read/Write` + `Administration: Read/Write` 两个仓库权限（fine-grained 限定本仓库即可），**用完即删**。脚本会自动建仓（如不存在）、上传全部文件并开启 Pages；推送后 1–2 分钟生效。
 
 ---
 
