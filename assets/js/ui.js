@@ -63,15 +63,16 @@ export function renderChrome(active) {
   ensureDrawer();
 }
 
-/** 数据状态条：更新时间 / 来源 / 快照告警 */
+/** 数据状态条：压缩为一行小字（详情见方法论页） */
 export function dataStatusBar(meta) {
   const stale = meta.stale
     ? `<div class="notice warn" style="margin-bottom:14px">⚠ ${escapeHtml(meta.stale_reason || '当前展示的是上一次快照数据')}</div>` : '';
   const src = (meta.sources || []).map((s) => `${s.name}${s.ok ? '' : '（失败）'}`).join(' + ');
   return `${stale}
-  <div class="row-between small mute" style="margin-bottom:14px">
-    <span>数据更新：<b style="color:var(--text)">${dateTime(meta.generated_at)}</b>（${relTime(meta.generated_at)}） · 来源：${escapeHtml(src)}</span>
-    <span>收录 ${meta.counts.all} 个模型 / ${meta.counts.vendors} 家厂商 · 其中 ${meta.counts.ranked} 个有第三方能力评分</span>
+  <div class="small mute" style="margin-bottom:14px">
+    数据更新 <b style="color:var(--text)">${dateTime(meta.generated_at)}</b> · ${escapeHtml(src)} ·
+    收录 ${meta.counts.all} 模型 / ${meta.counts.vendors} 厂商，其中 <b style="color:var(--text)">${meta.counts.ranked}</b> 个有第三方能力评分 ·
+    <a href="./about.html">口径与来源</a>
   </div>`;
 }
 
@@ -83,22 +84,39 @@ export function vendorBadge(m) {
   return `<span class="vendor-dot" style="background:${v.brand || vendorColor(m.vendor_id)};color:${v.brand || vendorColor(m.vendor_id)}"></span>`;
 }
 
-export function modelCell(m, { showVendor = true, b = './' } = {}) {
+export function modelCell(m, { showVendor = true, b = './', compact = false } = {}) {
   const v = m._vendor || {};
+  const vendor = vendorName(v) + (m.deprecated ? ' · 已弃用' : '');
   return `<div class="model-cell">
     ${vendorBadge(m)}
     <div style="min-width:0">
       <div class="model-name"><a href="${b}model/${encodeURIComponent(slug(m))}.html" onclick="event.stopPropagation()">${escapeHtml(m.name)}</a></div>
-      ${showVendor ? `<div class="model-sub">${escapeHtml(vendorName(v))}${m.deprecated ? ' · 已弃用' : ''}</div>` : ''}
+      ${compact ? '' : `<div class="model-sub">${escapeHtml(vendor)}</div>`}
     </div>
   </div>`;
 }
 
 export function slug(m) { return m.id.replace(/[^a-zA-Z0-9._-]/g, '-'); }
 
-/** 能力分单元格 */
+/**
+ * 排名提示：只显示与「当前排序」对应的那一个名次，
+ * 避免每行堆三行「能力第N名 / 便宜度第N名 / 性价比第N名」。
+ */
+export function rankHint(m, sort) {
+  if (!sort) return '';
+  switch (sort.key) {
+    case 'value': return m._valueRank ? `性价比第 ${m._valueRank} 名` : '';
+    case 'intelligence': return m._intelRank ? `能力第 ${m._intelRank} 名` : '';
+    case 'blended':
+    case 'input':
+    case 'output': return m._cheapRank ? `便宜度第 ${m._cheapRank} 名` : '';
+    default: return '';
+  }
+}
+
+/** 能力分单元格；无第三方评分时明确写「未评分」而不是含糊的破折号 */
 export function scoreCell(m) {
-  if (m._composite == null) return `<span class="mute">—</span>`;
+  if (m._composite == null) return '<span class="badge badge-outline">未评分</span>';
   const cls = m._composite >= 70 ? 'good' : m._composite >= 45 ? '' : 'warn';
   return `<div class="score-cell">
     <span class="score-v">${fmtScore(m._composite)}</span>

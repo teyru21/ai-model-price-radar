@@ -25,6 +25,7 @@ foreach ($s in $shots) {
   $proc = Start-Process -FilePath $edge -ArgumentList @(
     '--headless=new', '--disable-gpu', '--no-sandbox', "--user-data-dir=$profile",
     '--hide-scrollbars', '--force-device-scale-factor=1',
+    '--virtual-time-budget=20000',
     "--window-size=$($s.w),$($s.h)", "--screenshot=$file", $s.u
   ) -RedirectStandardError "$file.err" -PassThru -NoNewWindow
   $proc.WaitForExit(120000) | Out-Null; $proc.Dispose()

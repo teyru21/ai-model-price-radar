@@ -76,5 +76,54 @@ foreach ($k in @('能力多维度对比','编程指数','Agent 指数','竞技�
 }
 Check '对比页无脚本错误' (-not $cmp.Contains('data-js-error')) ''
 
+# ---- 7. v2 调整专项：榜单口径 / 结构精简 / 折叠筛选 ----
+$homeDom = Grab "$Base/" (Join-Path $tmp 'home_v2.html')
+
+# 7.1 首页主榜是效率前沿榜，且卡片上的模型都带「前沿」标记
+$frontierCards = [regex]::Matches($homeDom, '<article class="rank-card[^"]*" data-id="([^"]+)"')
+Check '首页主榜为效率前沿榜' ($homeDom.Contains('效率前沿榜') -and $frontierCards.Count -ge 4) "前沿卡片数=$($frontierCards.Count)"
+Check '首页跨度为前沿卡片带 ★ 前沿标记' ($homeDom.Contains('★ 前沿')) ''
+
+# 7.2 性价比榜有 60 分能力门槛（Q1C）
+Check '性价比榜标注能力门槛' ($homeDom.Contains('能力分 ≥ 60')) ''
+
+# 7.3 无评分模型不进首页任何榜单（Q6）
+Check '首页榜单不含未评分模型' (-not $homeDom.Contains('未评分')) ''
+$unscoredOnHome = [regex]::Matches($homeDom, 'data-id="([^"]+)"').Count
+$scoredTotal = (node -e "const j=require('D:/Work/world/data/models.json');console.log(j.models.filter(m=>m.scores.intelligence!=null).length)").Trim()
+Check '首页榜单卡片+行数量不超过有评分模型总数' ($unscoredOnHome -le [int]$scoredTotal) "首页条目=$unscoredOnHome / 有评分=$scoredTotal"
+
+# 7.4 结构精简（Q2/Q4）：厂商卡片、TOP10 表格已移出首页
+Check '首页已移除厂商入口卡片' (-not $homeDom.Contains('按厂商浏览 API 平台')) ''
+Check '首页已移除能力 TOP10 表格' (-not $homeDom.Contains('能力最强 TOP 10')) ''
+Check '首页已移除最便宜 TOP10 表格' (-not $homeDom.Contains('最便宜的可用模型 TOP 10')) ''
+Check '首页含场景入口三卡' ($homeDom.Contains('预算优先') -and $homeDom.Contains('能力优先') -and $homeDom.Contains('算清成本')) ''
+
+# 7.5 折叠筛选（Q3）：默认不展开，URL 带高级条件时自动展开
+Check '筛选栏默认折叠' ($homeDom -notmatch 'filter-more open') '首页无筛选栏，检查全部模型页'
+$mDefault = Grab "$Base/models.html" (Join-Path $tmp 'm_default.html')
+Check '全部模型页筛选栏默认折叠' ($mDefault -match 'class="filter-more"' -and $mDefault -notmatch 'filter-more open') ''
+$mExpanded = Grab "$Base/models.html?minscore=60" (Join-Path $tmp 'm_expanded.html')
+Check '带高级条件时筛选栏自动展开' ($mExpanded -match 'filter-more open') ''
+Check '全部模型页保留厂商入口' ($mDefault.Contains('按厂商浏览 API 平台')) ''
+
+# 7.6 单一排名提示（Q5）：按能力排序时只出现能力名次
+$rankDom = Grab "$Base/models.html?sort=intelligence&dir=desc" (Join-Path $tmp 'rank_hint.html')
+$intelHints = [regex]::Matches($rankDom, '能力第 \d+ 名').Count
+$cheapHints = [regex]::Matches($rankDom, '便宜度第 \d+ 名').Count
+$valueHints = [regex]::Matches($rankDom, '性价比第 \d+ 名').Count
+Check '按能力排序时只显示能力名次' ($intelHints -gt 0 -and $cheapHints -eq 0 -and $valueHints -eq 0) "能力=$intelHints 便宜度=$cheapHints 性价比=$valueHints"
+Check '未评分模型在表格中明确标注' ($mDefault.Contains('未评分')) ''
+
+# 7.7 默认排序 = 能力分 高→低（不再是性价比，避免弱模型占据首屏第一行）
+$expectedTop = (node -e "
+const j=require('D:/Work/world/data/models.json');
+const main=new Set(j.meta.mainstream.vendors);
+const s=j.models.filter(m=>m.scores.intelligence!=null&&!m.deprecated&&m.category==='text'&&main.has(m.vendor_id));
+s.sort((a,b)=>b.scores.intelligence-a.scores.intelligence);
+console.log(s[0].id);").Trim()
+$mDefaultIds = Get-Order $mDefault
+Check '默认排序为能力分 高→低' ($mDefaultIds.Count -gt 0 -and $mDefaultIds[0] -eq $expectedTop) "首行=$($mDefaultIds[0]) 期望=$expectedTop"
+
 Write-Output ""
 Write-Output "失败项: $fail"

@@ -7,8 +7,8 @@ $tmp = Join-Path $env:TEMP 'ai-price-verify'
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
 $pages = @(
-  @{ name='home';       url="$Base/";                expect=@('性价比排行榜','能力 - 价格象限图','高性价比区','旗舰性能区','经济入门区','低性价比区','效率前沿','官方入口','数据更新') },
-  @{ name='models';     url="$Base/models.html";     expect=@('全部模型价格表','能力下限','只看效率前沿','导出 CSV','缓存读','性价比') },
+  @{ name='home';       url="$Base/";                expect=@('效率前沿榜','性价比榜','能力 - 价格象限图','高性价比区','旗舰性能区','经济入门区','低性价比区','效率前沿','按场景快速选','数据更新','没有任何模型能同时做到更便宜且更强') },
+  @{ name='models';     url="$Base/models.html";     expect=@('全部模型价格表','能力下限','只看效率前沿','导出 CSV','缓存读','按厂商浏览 API 平台','未评分','更多筛选') },
   @{ name='calculator'; url="$Base/calculator.html"; expect=@('API 成本计算器','场景预设','单次成本','月成本','预算内能力最强','成本分布') },
   @{ name='compare';    url="$Base/compare.html";    expect=@('模型横向对比','选择模型','快速开始') },
   @{ name='compareIds'; url="$Base/compare.html?ids=openai/gpt-6-sol,deepseek/deepseek-v4-pro,anthropic/claude-fable-5.1"; expect=@('对比项','相对最便宜倍数','官方 API 文档','混合价格对比','综合能力分对比','1 万次调用月成本','选择模型（3/4）') },

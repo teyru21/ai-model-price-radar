@@ -12,19 +12,25 @@
  */
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const [user, repo] = process.argv.slice(2);
 const token = process.argv[4] || process.env.GH_PAT;
+const PAUSE_MS = 1100; // 内容写入请求之间的最小间隔（GitHub 建议 ≥1s）
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 计算 git blob 对象的 SHA-1（与 GitHub 远端 tree 里的 sha 同一算法），用于判断文件是否真的变了 */
+const gitBlobSha = (buf) => createHash('sha1').update(`blob ${buf.length}\0`).update(buf).digest('hex');
 
 if (!user || !repo || !token) {
   console.error('用法：node scripts/push-via-api.mjs <用户名> <仓库名> <PAT>（或设置 GH_PAT）');
   process.exit(1);
 }
 
-const api = (path, opts = {}) => fetch(`https://api.github.com${path}`, {
+const rawApi = (path, opts = {}) => fetch(`https://api.github.com${path}`, {
   ...opts,
   headers: {
     accept: 'application/vnd.github+json',
@@ -33,6 +39,67 @@ const api = (path, opts = {}) => fetch(`https://api.github.com${path}`, {
     ...(opts.headers || {}),
   },
 });
+
+/**
+ * 带重试的 API 调用：本机到 api.github.com 存在间歇性连接超时（实测约每 3 次就有 1 次），
+ * 因此对「网络类错误」和 5xx 做指数退避重试；4xx（权限/参数错误）不重试，交给调用方处理。
+ * 所有请求 body 都是字符串，可安全重发。
+ */
+async function api(path, opts = {}) {
+  let lastErr;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const res = await rawApi(path, opts);
+      // 次级速率限制：GitHub 会返回 403/429 并带 "rate limit" 说明，需要长退避
+      if ((res.status === 403 || res.status === 429) && attempt < 5) {
+        const txt = await res.clone().text();
+        if (/rate limit/i.test(txt)) {
+          const wait = 60000 * attempt;
+          console.log(`  触发 GitHub 速率限制，等待 ${wait / 1000}s 后重试（${attempt}/5）`);
+          await sleep(wait);
+          continue;
+        }
+      }
+      if (res.status >= 500 && res.status < 600 && attempt < 5) {
+        const wait = 1000 * 2 ** (attempt - 1);
+        console.log(`  GitHub 返回 ${res.status}，${wait / 1000}s 后重试（${attempt}/5）`);
+        await sleep(wait);
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      if (attempt === 5) break;
+      const wait = 1000 * 2 ** (attempt - 1);
+      console.log(`  网络抖动（${e.cause?.message || e.message}），${wait / 1000}s 后重试（${attempt}/5）`);
+      await sleep(wait);
+    }
+  }
+  console.error(`✗ 连接 api.github.com 连续失败：${lastErr?.cause?.message || lastErr?.message}`);
+  process.exit(1);
+}
+
+/**
+ * 读取远端 main 的完整文件树 → Map<路径, blob sha>。
+ * 拿不到时返回空 Map（等价于「全部文件都算变更」，退化为全量上传，仍然正确）。
+ */
+async function fetchRemoteTree() {
+  const out = new Map();
+  try {
+    const head = await api(`/repos/${user}/${repo}/git/refs/heads/main`);
+    if (head.status !== 200) return out;
+    const headSha = (await head.json()).object.sha;
+    const commit = await api(`/repos/${user}/${repo}/git/commits/${headSha}`);
+    if (commit.status !== 200) return out;
+    const treeSha = (await commit.json()).tree.sha;
+    const tree = await api(`/repos/${user}/${repo}/git/trees/${treeSha}?recursive=1`);
+    if (tree.status !== 200) return out;
+    const j = await tree.json();
+    if (j.truncated) console.log('! 远端树过大被截断，未列出的文件将按「已变更」处理');
+    for (const t of j.tree || []) if (t.type === 'blob') out.set(t.path, t.sha);
+  } catch { /* 忽略：退化为全量上传 */ }
+  return out;
+}
 
 async function die(msg, resp) {
   let extra = '';
@@ -91,33 +158,42 @@ async function main() {
     return bootPromise;
   }
 
-  // 4) 上传 blob（并发 5）
+  // 4) 上传 blob：只上传「内容真的变了」的文件
+  //    做法：拉取远端 main 的完整 tree，本地按 git 的 blob 算法算出每个文件的 SHA-1，
+  //    SHA 相同说明内容一致 → 直接复用远端对象，不再发请求。
+  //    这样日常更新通常只需十几次请求（而不是几百次），既快又不会触发 GitHub 的次级速率限制。
+  const remoteBlobs = await fetchRemoteTree();
   const blobs = new Map();
+  const changed = [];
+  for (const path of files) {
+    const content = await readFile(join(ROOT, path));
+    const sha = gitBlobSha(content);
+    if (remoteBlobs.get(path) === sha) blobs.set(path, sha);
+    else changed.push({ path, content, sha });
+  }
+  console.log(`✓ 文件比对完成：${files.length} 个文件中 ${changed.length} 个有变更，${files.length - changed.length} 个未变（复用远端对象）`);
+
   let done = 0;
-  const queue = [...files];
-  const workers = Array.from({ length: 5 }, async () => {
-    while (queue.length) {
-      const path = queue.shift();
-      const content = await readFile(join(ROOT, path));
-      let r = await api(`/repos/${user}/${repo}/git/blobs`, {
+  for (const { path, content, sha } of changed) {
+    let r = await api(`/repos/${user}/${repo}/git/blobs`, {
+      method: 'POST',
+      body: JSON.stringify({ content: content.toString('base64'), encoding: 'base64' }),
+    });
+    if (r.status === 409) {           // 空仓库：先初始化再重试
+      await ensureBoot();
+      r = await api(`/repos/${user}/${repo}/git/blobs`, {
         method: 'POST',
         body: JSON.stringify({ content: content.toString('base64'), encoding: 'base64' }),
       });
-      if (r.status === 409) {           // 空仓库：先初始化再重试
-        await ensureBoot();
-        r = await api(`/repos/${user}/${repo}/git/blobs`, {
-          method: 'POST',
-          body: JSON.stringify({ content: content.toString('base64'), encoding: 'base64' }),
-        });
-      }
-      if (r.status !== 201) await die(`上传 ${path} 失败`, r);
-      blobs.set(path, (await r.json()).sha);
-      done++;
-      if (done % 25 === 0) console.log(`  已上传 ${done}/${files.length}`);
     }
-  });
-  await Promise.all(workers);
-  console.log(`✓ 全部 blob 上传完成（${blobs.size}）`);
+    if (r.status !== 201) await die(`上传 ${path} 失败`, r);
+    blobs.set(path, (await r.json()).sha);
+    done++;
+    if (done % 10 === 0) console.log(`  已上传 ${done}/${changed.length}`);
+    // GitHub 建议：连续的内容写入请求之间至少间隔 1 秒，否则会触发次级速率限制
+    if (done < changed.length) await sleep(PAUSE_MS);
+  }
+  console.log(`✓ blob 就绪（新上传 ${changed.length} 个，复用 ${blobs.size - changed.length} 个）`);
 
   // 5) 建树 + 提交（接在当前 main 头之后，保证 fast-forward）
   const tree = [...blobs.entries()].map(([path, sha]) => ({ path, mode: '100644', type: 'blob', sha }));

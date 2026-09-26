@@ -8,10 +8,10 @@ import { escapeHtml } from './format.js';
  * 因此「性价比最高/最低、能力最高/最低、价格最低/最高」都可以直接选。
  */
 export const SORT_OPTIONS = [
-  { key: 'value', dir: 'desc', label: '性价比 高 → 低（最划算）' },
-  { key: 'value', dir: 'asc', label: '性价比 低 → 高（最不划算）' },
   { key: 'intelligence', dir: 'desc', label: '综合能力分 高 → 低（最强）' },
   { key: 'intelligence', dir: 'asc', label: '综合能力分 低 → 高（最弱）' },
+  { key: 'value', dir: 'desc', label: '性价比 高 → 低（最划算）' },
+  { key: 'value', dir: 'asc', label: '性价比 低 → 高（最不划算）' },
   { key: 'blended', dir: 'asc', label: '混合价格 低 → 高（最便宜）' },
   { key: 'blended', dir: 'desc', label: '混合价格 高 → 低（最贵）' },
   { key: 'input', dir: 'asc', label: '输入价 低 → 高' },
@@ -24,20 +24,26 @@ export const SORT_OPTIONS = [
   { key: 'release', dir: 'asc', label: '发布时间 旧 → 新' },
 ];
 
-export const DEFAULT_SORT = { key: 'value', dir: 'desc' };
+/**
+ * 默认排序 = 能力分 高 → 低。
+ * 不默认按性价比排序：性价比 = 能力分 ÷ 混合价，会被极低价弱模型霸榜，
+ * 打开页面第一眼看到「最强」比看到「最便宜但很弱」更合理。
+ * 该常量同时是 filtersToUrl 省略参数的基准，务必与 defaultFilters 保持一致。
+ */
+export const DEFAULT_SORT = { key: 'intelligence', dir: 'desc' };
 const sortId = (s) => `${s.key}:${s.dir}`;
 const LABEL_BY_ID = new Map(SORT_OPTIONS.map((s) => [sortId(s), s.label]));
 
 /** 由 key + dir 还原一个排序对象（用于 URL 直接指定排序） */
 export function makeSort(key, dir) {
   const opt = SORT_OPTIONS.find((s) => s.key === key && s.dir === dir);
-  return opt ? { ...opt } : { ...SORT_OPTIONS[0] };
+  return opt ? { ...opt } : { ...DEFAULT_SORT };
 }
 
 /** 兼容旧引用：SORTS.value 等 */
 export const SORTS = Object.fromEntries(SORT_OPTIONS.map((s) => [`${s.key}_${s.dir}`, s]));
-SORTS.value = SORT_OPTIONS[0];
-SORTS.intelligence = SORT_OPTIONS[2];
+SORTS.value = SORT_OPTIONS.find((s) => s.key === 'value' && s.dir === 'desc');
+SORTS.intelligence = SORT_OPTIONS[0];
 
 export function defaultFilters(overrides = {}) {
   return {
@@ -52,7 +58,7 @@ export function defaultFilters(overrides = {}) {
     priceMax: null,
     minContext: 0,
     includeDeprecated: false,
-    sort: { ...SORT_OPTIONS[0] },
+    sort: { ...DEFAULT_SORT },
     ...overrides,
   };
 }
@@ -145,15 +151,33 @@ export function filtersToUrl(f) {
 }
 
 /* ---------------- 筛选栏 ---------------- */
+/** 统计「高级筛选项」生效个数，用于折叠按钮上的角标与默认展开判断 */
+function countAdvanced(f) {
+  let n = 0;
+  if (f.priceMax != null) n++;
+  if (f.minContext) n++;
+  if (f.category !== 'text') n++;
+  if (!f.mainstreamOnly) n++;
+  if (f.scoredOnly) n++;
+  if (f.paretoOnly) n++;
+  if (f.openOnly) n++;
+  if (f.includeDeprecated) n++;
+  if (f.minScore) n++;
+  n += f.vendors.length;
+  return n;
+}
+
 /**
+ * 筛选栏：默认只显示「搜索 / 排序 / 厂商」三个核心控件，
+ * 分类、开关、能力下限、价格区间等收进「更多筛选」折叠面板；
+ * 若 URL 里已带高级筛选条件，则自动展开，避免用户看不到自己筛了什么。
+ *
  * @param {HTMLElement} host
  * @param {object} f 筛选状态
  * @param {(patch:object, rerender?:boolean)=>void} onChange
  */
 export function renderFilterBar(host, f, onChange, { showSort = true, extraHtml = '' } = {}) {
   const models = state.models;
-  const mset = mainstreamVendorIds();
-  const pool = models.filter((m) => (mset.size ? mset.has(m.vendor_id) : true));
   const vendorCounts = new Map();
   for (const m of models) vendorCounts.set(m.vendor_id, (vendorCounts.get(m.vendor_id) || 0) + 1);
   const topVendors = [...vendorCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
@@ -163,22 +187,24 @@ export function renderFilterBar(host, f, onChange, { showSort = true, extraHtml 
     ['text', '文本生成'], ['image', '图像生成'], ['video', '视频生成'], ['audio', '音频生成'], ['all', '全部类型'],
   ];
   const cur = sortId(f.sort);
+  const adv = countAdvanced(f);
+  const open = adv > 0;
 
   host.innerHTML = `
     <div class="card" style="padding:14px">
       <div class="row" style="gap:10px;flex-wrap:wrap;align-items:flex-end">
-        <label class="field" style="flex:1;min-width:210px">
+        <label class="field" style="flex:1;min-width:200px">
           搜索模型 / 厂商
-          <input type="search" id="f-q" placeholder="输入模型名、厂商名或模型 id，例如：GPT、Claude、DeepSeek、qwen" value="${escapeHtml(f.q)}">
+          <input type="search" id="f-q" placeholder="模型名、厂商名或模型 id，例如 GPT、Claude、DeepSeek" value="${escapeHtml(f.q)}">
         </label>
-        ${showSort ? `<label class="field" style="min-width:230px">
+        ${showSort ? `<label class="field" style="min-width:220px">
           排序（最高 / 最低）
           <select id="f-sort">
             ${SORT_OPTIONS.map((s) => `<option value="${sortId(s)}" ${cur === sortId(s) ? 'selected' : ''}>${s.label}</option>`).join('')}
           </select>
         </label>` : ''}
-        <label class="field" style="min-width:190px">
-          按厂商筛选（全部 ${allVendors.length} 家）
+        <label class="field" style="min-width:180px">
+          厂商（全部 ${allVendors.length} 家）
           <select id="f-vendor">
             <option value="">— 选择厂商加入筛选 —</option>
             ${allVendors.map(([id, n]) => {
@@ -187,60 +213,82 @@ export function renderFilterBar(host, f, onChange, { showSort = true, extraHtml 
             }).join('')}
           </select>
         </label>
-        <label class="field" style="width:180px">
-          混合价格上限（美元/百万）
-          <input type="number" id="f-pmax" min="0" step="0.5" placeholder="不限" value="${f.priceMax ?? ''}">
-        </label>
-        <label class="field" style="width:150px">
-          最小上下文
-          <select id="f-ctx">
-            ${[[0, '不限'], [32000, '32K+'], [128000, '128K+'], [200000, '200K+'], [1000000, '1M+']]
-              .map(([v, l]) => `<option value="${v}" ${f.minContext === v ? 'selected' : ''}>${l}</option>`).join('')}
-          </select>
-        </label>
-        <button class="btn" id="f-reset">重置</button>
+        <button class="btn" id="f-more" aria-expanded="${open}">
+          更多筛选${adv ? ` <span class="badge badge-accent">${adv}</span>` : ' <span class="mute">▾</span>'}
+        </button>
+        <button class="btn btn-ghost" id="f-reset">重置</button>
       </div>
 
-      <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px">
-        ${cats.map(([v, l]) => `<button class="chip" data-cat="${v}" aria-pressed="${f.category === v}">${l}</button>`).join('')}
-        <span style="width:1px;height:20px;background:var(--border)"></span>
-        <button class="chip" data-toggle="mainstreamOnly" aria-pressed="${f.mainstreamOnly}">只看主流厂商</button>
-        <button class="chip" data-toggle="scoredOnly" aria-pressed="${f.scoredOnly}">只看有第三方评分</button>
-        <button class="chip" data-toggle="paretoOnly" aria-pressed="${f.paretoOnly}">只看效率前沿</button>
-        <button class="chip" data-toggle="openOnly" aria-pressed="${f.openOnly}">只看开源权重</button>
-        <button class="chip" data-toggle="includeDeprecated" aria-pressed="${f.includeDeprecated}">包含已弃用</button>
-      </div>
+      <div class="filter-more${open ? ' open' : ''}" id="f-more-panel">
+        <div class="filter-row">
+          <label class="field" style="width:180px">
+            混合价格上限（美元/百万）
+            <input type="number" id="f-pmax" min="0" step="0.5" placeholder="不限" value="${f.priceMax ?? ''}">
+          </label>
+          <label class="field" style="width:150px">
+            最小上下文
+            <select id="f-ctx">
+              ${[[0, '不限'], [32000, '32K+'], [128000, '128K+'], [200000, '200K+'], [1000000, '1M+']]
+                .map(([v, l]) => `<option value="${v}" ${f.minContext === v ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+          </label>
+          <div class="field" style="justify-content:flex-end">
+            模型类型
+            <div class="row" style="gap:7px;flex-wrap:wrap">
+              ${cats.map(([v, l]) => `<button class="chip" data-cat="${v}" aria-pressed="${f.category === v}">${l}</button>`).join('')}
+            </div>
+          </div>
+        </div>
 
-      <div class="row" style="gap:7px;flex-wrap:wrap;margin-top:9px">
-        <span class="tiny mute" style="width:52px">能力下限</span>
-        ${[[0, '不限'], [30, '≥30 分'], [45, '≥45 分'], [60, '≥60 分'], [75, '≥75 分']].map(([v, l]) =>
-          `<button class="chip" data-minscore="${v}" aria-pressed="${f.minScore === v}">${l}</button>`).join('')}
-      </div>
+        <div class="filter-row">
+          <span class="tiny mute" style="width:52px">能力下限</span>
+          ${[[0, '不限'], [30, '≥30 分'], [45, '≥45 分'], [60, '≥60 分'], [75, '≥75 分']].map(([v, l]) =>
+            `<button class="chip" data-minscore="${v}" aria-pressed="${f.minScore === v}">${l}</button>`).join('')}
+        </div>
 
-      <div class="row" style="gap:7px;flex-wrap:wrap;margin-top:11px">
-        <span class="tiny mute" style="width:52px">厂商</span>
-        ${topVendors.map(([id, n]) => {
-          const v = state.vendorById.get(id);
-          return `<button class="chip" data-vendor="${id}" aria-pressed="${f.vendors.includes(id)}">
-            <span class="chip-dot" style="background:${v?.brand || 'var(--text-mute)'}"></span>${escapeHtml(vendorName(v))}<span class="mute tiny">${n}</span>
-          </button>`;
-        }).join('')}
-        ${f.vendors.length ? '<button class="chip" data-clear-vendors>清除厂商</button>' : '<span class="tiny mute">（常用厂商快捷筛选，完整列表见上方下拉框）</span>'}
+        <div class="filter-row">
+          <button class="chip" data-toggle="mainstreamOnly" aria-pressed="${f.mainstreamOnly}">只看主流厂商</button>
+          <button class="chip" data-toggle="scoredOnly" aria-pressed="${f.scoredOnly}">只看有第三方评分</button>
+          <button class="chip" data-toggle="paretoOnly" aria-pressed="${f.paretoOnly}">只看效率前沿</button>
+          <button class="chip" data-toggle="openOnly" aria-pressed="${f.openOnly}">只看开源权重</button>
+          <button class="chip" data-toggle="includeDeprecated" aria-pressed="${f.includeDeprecated}">包含已弃用</button>
+        </div>
+
+        <div class="filter-row">
+          <span class="tiny mute" style="width:52px">厂商</span>
+          ${topVendors.map(([id, n]) => {
+            const v = state.vendorById.get(id);
+            return `<button class="chip" data-vendor="${id}" aria-pressed="${f.vendors.includes(id)}">
+              <span class="chip-dot" style="background:${v?.brand || 'var(--text-mute)'}"></span>${escapeHtml(vendorName(v))}<span class="mute tiny">${n}</span>
+            </button>`;
+          }).join('')}
+          ${f.vendors.length ? '<button class="chip" data-clear-vendors>清除厂商</button>' : '<span class="tiny mute">（常用厂商，完整列表见上方下拉框）</span>'}
+        </div>
+
+        ${f.vendors.length ? `<div class="filter-row">
+          <span class="tiny mute" style="width:52px">已选</span>
+          ${f.vendors.map((id) => {
+            const v = state.vendorById.get(id);
+            return `<button class="chip" data-vendor="${id}" aria-pressed="true" title="点击移除">
+              <span class="chip-dot" style="background:${v?.brand || 'var(--text-mute)'}"></span>${escapeHtml(vendorName(v))} ✕</button>`;
+          }).join('')}
+        </div>` : ''}
+        ${extraHtml}
       </div>
-      ${f.vendors.length ? `<div class="row" style="gap:7px;flex-wrap:wrap;margin-top:8px">
-        <span class="tiny mute" style="width:52px">已选</span>
-        ${f.vendors.map((id) => {
-          const v = state.vendorById.get(id);
-          return `<button class="chip" data-vendor="${id}" aria-pressed="true" title="点击移除">
-            <span class="chip-dot" style="background:${v?.brand || 'var(--text-mute)'}"></span>${escapeHtml(vendorName(v))} ✕</button>`;
-        }).join('')}
-      </div>` : ''}
-      ${extraHtml}
     </div>`;
 
   const q = host.querySelector('#f-q');
   let timer;
   q.oninput = () => { clearTimeout(timer); timer = setTimeout(() => onChange({ q: q.value }), 180); };
+
+  // 折叠面板开关（不重新渲染，保留用户已输入的搜索词）
+  const moreBtn = host.querySelector('#f-more');
+  const morePanel = host.querySelector('#f-more-panel');
+  moreBtn.onclick = () => {
+    const nowOpen = morePanel.classList.toggle('open');
+    moreBtn.setAttribute('aria-expanded', String(nowOpen));
+  };
+
   const sortSel = host.querySelector('#f-sort');
   if (sortSel) {
     sortSel.onchange = () => {
