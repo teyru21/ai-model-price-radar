@@ -25,6 +25,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** 计算 git blob 对象的 SHA-1（与 GitHub 远端 tree 里的 sha 同一算法），用于判断文件是否真的变了 */
 const gitBlobSha = (buf) => createHash('sha1').update(`blob ${buf.length}\0`).update(buf).digest('hex');
 
+/** 远端提交信息取本地最新一次提交，保证两边历史可读且一致 */
+const localCommitMessage = (() => {
+  try {
+    return execFileSync('git', ['-C', ROOT, 'log', '-1', '--pretty=%B'], { encoding: 'utf8' }).trim()
+      || 'AI 模型价格雷达：数据与页面更新';
+  } catch {
+    return 'AI 模型价格雷达：数据与页面更新';
+  }
+})();
+
 if (!user || !repo || !token) {
   console.error('用法：node scripts/push-via-api.mjs <用户名> <仓库名> <PAT>（或设置 GH_PAT）');
   process.exit(1);
@@ -208,7 +218,7 @@ async function main() {
   resp = await api(`/repos/${user}/${repo}/git/commits`, {
     method: 'POST',
     body: JSON.stringify({
-      message: 'AI 模型价格雷达 v1：价格/能力/性价比对比静态站',
+      message: localCommitMessage,
       tree: treeSha,
       ...(parentSha ? { parents: [parentSha] } : {}),
     }),
