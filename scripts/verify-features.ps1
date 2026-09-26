@@ -23,10 +23,10 @@ function Get-Order([string]$dom, [string]$metric) {
   return ($rows | ForEach-Object { $_.Groups[1].Value })
 }
 
-$fail = 0
+$global:verifyFail = 0
 function Check($name, $cond, $detail) {
   if ($cond) { Write-Output ("[OK]   {0,-46} {1}" -f $name, $detail) }
-  else { $script:fail++; Write-Output ("[FAIL] {0,-46} {1}" -f $name, $detail) }
+  else { $global:verifyFail++; Write-Output ("[FAIL] {0,-46} {1}" -f $name, $detail) }
 }
 
 # ---- 1. 排序方向：性价比 高→低 vs 低→高 ----
@@ -97,6 +97,10 @@ Check '首页榜单卡片+行数量不超过有评分模型总数' ($unscoredOnH
 Check '首页已移除厂商入口卡片' (-not $homeDom.Contains('按厂商浏览 API 平台')) ''
 Check '首页已移除能力 TOP10 表格' (-not $homeDom.Contains('能力最强 TOP 10')) ''
 Check '首页已移除最便宜 TOP10 表格' (-not $homeDom.Contains('最便宜的可用模型 TOP 10')) ''
+# 正文里仍出现「性价比排行榜」这个词（用来解释为什么不用它当主榜），所以这里匹配 h2 标题而不是子串
+Check '首页已移除旧的性价比排行榜标题' (-not ($homeDom -match '<h2>[^<]*性价比排行榜')) ''
+$h2s = [regex]::Matches($homeDom, '<h2>(.*?)</h2>') | ForEach-Object { ($_.Groups[1].Value -replace '<[^>]+>', '') -replace '\s+', ' ' }
+Check '首页恰好 4 个区块标题' ($h2s.Count -eq 4) ($h2s -join ' | ')
 Check '首页含场景入口三卡' ($homeDom.Contains('预算优先') -and $homeDom.Contains('能力优先') -and $homeDom.Contains('算清成本')) ''
 
 # 7.5 折叠筛选（Q3）：默认不展开，URL 带高级条件时自动展开
@@ -126,4 +130,4 @@ $mDefaultIds = Get-Order $mDefault
 Check '默认排序为能力分 高→低' ($mDefaultIds.Count -gt 0 -and $mDefaultIds[0] -eq $expectedTop) "首行=$($mDefaultIds[0]) 期望=$expectedTop"
 
 Write-Output ""
-Write-Output "失败项: $fail"
+Write-Output "失败项: $global:verifyFail"
